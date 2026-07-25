@@ -1,5 +1,6 @@
-from app.database import Base
 from app import models  # noqa: F401
+from app.auth import models as auth_models  # noqa: F401
+from app.database import Base
 
 
 def test_expected_tables_are_registered() -> None:
@@ -16,6 +17,9 @@ def test_expected_tables_are_registered() -> None:
         "executions",
         "events",
         "audit_records",
+        "users",
+        "refresh_tokens",
+        "api_keys",
     }
 
     assert expected == set(Base.metadata.tables)
