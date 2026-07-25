@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.agents.router import router as agents_router
 from app.auth.dependencies import require_permission
 from app.auth.router import router as auth_router
 from app.database import get_db_session
@@ -18,7 +19,7 @@ from app.schemas import (
     OrganizationRead,
 )
 
-APP_VERSION = "0.3.0-alpha"
+APP_VERSION = "0.4.0-alpha"
 DbSession = Annotated[Session, Depends(get_db_session)]
 
 router = APIRouter(prefix="/api/v1")
@@ -131,3 +132,4 @@ router.include_router(system_router)
 router.include_router(auth_router)
 router.include_router(organization_router)
 router.include_router(installation_router)
+router.include_router(agents_router)
