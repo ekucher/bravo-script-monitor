@@ -6,6 +6,7 @@ from sqlalchemy import engine_from_config, pool
 import app.models  # noqa: F401
 from app.auth import models as auth_models  # noqa: F401
 from app.database import Base
+from app.scheduler import models as scheduler_models  # noqa: F401
 from app.settings import settings
 
 config = context.config
