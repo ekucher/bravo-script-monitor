@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from app.api import router as api_router
+from app.main import create_app
 from app.scheduler.models import ScheduleKind
 from app.scheduler.router import router
 from app.scheduler.schemas import ScheduleCreate, SchedulePage, ScheduleRead, ScheduleUpdate
@@ -21,7 +21,7 @@ def test_scheduler_router_exposes_management_endpoints() -> None:
 
 
 def test_scheduler_router_is_registered_in_v1_api() -> None:
-    paths = {route.path for route in api_router.routes}
+    paths = {route.path for route in create_app().routes if hasattr(route, "path")}
 
     assert "/api/v1/schedules" in paths
     assert "/api/v1/schedules/{schedule_id}/run" in paths
