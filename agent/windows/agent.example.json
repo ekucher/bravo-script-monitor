@@ -1,0 +1,7 @@
+{
+  "ApiUrl": "https://monitor.bravosoft.org",
+  "AgentId": "00000000-0000-0000-0000-000000000000",
+  "Token": "bsm_agent_replace_me",
+  "Version": "0.4.0-alpha",
+  "PollIntervalSeconds": 15
+}
