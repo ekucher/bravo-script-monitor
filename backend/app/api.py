@@ -7,6 +7,8 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.auth.dependencies import require_permission
+from app.auth.router import router as auth_router
 from app.database import get_db_session
 from app.models import Installation, Organization
 from app.schemas import (
@@ -16,13 +18,21 @@ from app.schemas import (
     OrganizationRead,
 )
 
-APP_VERSION = "0.2.0-alpha"
+APP_VERSION = "0.3.0-alpha"
 DbSession = Annotated[Session, Depends(get_db_session)]
 
 router = APIRouter(prefix="/api/v1")
 system_router = APIRouter(tags=["system"])
-organization_router = APIRouter(prefix="/organizations", tags=["organizations"])
-installation_router = APIRouter(prefix="/installations", tags=["installations"])
+organization_router = APIRouter(
+    prefix="/organizations",
+    tags=["organizations"],
+    dependencies=[Depends(require_permission("organizations.read"))],
+)
+installation_router = APIRouter(
+    prefix="/installations",
+    tags=["installations"],
+    dependencies=[Depends(require_permission("installations.read"))],
+)
 
 
 @system_router.get("/health", summary="Check API health")
@@ -64,6 +74,7 @@ def list_organizations(
     "",
     response_model=OrganizationRead,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_permission("organizations.write"))],
 )
 def create_organization(payload: OrganizationCreate, session: DbSession) -> Organization:
     organization = Organization(**payload.model_dump())
@@ -95,6 +106,7 @@ def list_installations(
     "",
     response_model=InstallationRead,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_permission("installations.write"))],
 )
 def create_installation(payload: InstallationCreate, session: DbSession) -> Installation:
     organization = session.get(Organization, payload.organization_id)
@@ -116,5 +128,6 @@ def create_installation(payload: InstallationCreate, session: DbSession) -> Inst
 
 
 router.include_router(system_router)
+router.include_router(auth_router)
 router.include_router(organization_router)
 router.include_router(installation_router)
