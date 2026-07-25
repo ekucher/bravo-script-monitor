@@ -18,8 +18,9 @@ from app.schemas import (
     OrganizationCreate,
     OrganizationRead,
 )
+from app.scripts.router import router as scripts_router
 
-APP_VERSION = "0.4.0-alpha"
+APP_VERSION = "0.5.0-alpha"
 DbSession = Annotated[Session, Depends(get_db_session)]
 
 router = APIRouter(prefix="/api/v1")
@@ -133,3 +134,4 @@ router.include_router(auth_router)
 router.include_router(organization_router)
 router.include_router(installation_router)
 router.include_router(agents_router)
+router.include_router(scripts_router)
