@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -118,8 +118,16 @@ def heartbeat(payload: AgentHeartbeatRequest, agent: CurrentAgent, session: DbSe
     return agent
 
 
-@agent_api_router.put("/inventory", status_code=status.HTTP_204_NO_CONTENT)
-def update_inventory(payload: AgentInventoryRequest, agent: CurrentAgent, session: DbSession) -> None:
+@agent_api_router.put(
+    "/inventory",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+)
+def update_inventory(
+    payload: AgentInventoryRequest,
+    agent: CurrentAgent,
+    session: DbSession,
+) -> Response:
     server = session.get(Server, agent.server_id)
     if server is None:
         raise HTTPException(status_code=409, detail="Agent server no longer exists")
@@ -128,6 +136,7 @@ def update_inventory(payload: AgentInventoryRequest, agent: CurrentAgent, sessio
     agent.last_seen_at = datetime.now(UTC)
     agent.status = AgentStatus.online
     session.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @agent_api_router.post("/jobs/claim", response_model=AgentJobRead | None)
@@ -158,7 +167,12 @@ def claim_job(agent: CurrentAgent, session: DbSession) -> AgentJobRead | None:
         raise HTTPException(status_code=409, detail="Job script version no longer exists")
 
     job.status = JobStatus.running
-    execution = Execution(job_id=job.id, attempt=len(job.executions) + 1, status=JobStatus.running, started_at=now)
+    execution = Execution(
+        job_id=job.id,
+        attempt=len(job.executions) + 1,
+        status=JobStatus.running,
+        started_at=now,
+    )
     session.add(execution)
     agent.last_seen_at = now
     agent.status = AgentStatus.online
@@ -174,13 +188,17 @@ def claim_job(agent: CurrentAgent, session: DbSession) -> AgentJobRead | None:
     )
 
 
-@agent_api_router.post("/jobs/{job_id}/result", status_code=status.HTTP_204_NO_CONTENT)
+@agent_api_router.post(
+    "/jobs/{job_id}/result",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+)
 def submit_job_result(
     job_id: UUID,
     payload: AgentJobResultRequest,
     agent: CurrentAgent,
     session: DbSession,
-) -> None:
+) -> Response:
     if payload.status not in {JobStatus.succeeded, JobStatus.failed, JobStatus.cancelled}:
         raise HTTPException(status_code=422, detail="Result status must be terminal")
 
@@ -204,6 +222,7 @@ def submit_job_result(
     agent.last_seen_at = now
     agent.status = AgentStatus.online
     session.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 router.include_router(management_router)
