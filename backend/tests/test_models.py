@@ -1,6 +1,7 @@
 from app import models  # noqa: F401
 from app.auth import models as auth_models  # noqa: F401
 from app.database import Base
+from app.scheduler import models as scheduler_models  # noqa: F401
 
 
 def test_expected_tables_are_registered() -> None:
@@ -20,6 +21,8 @@ def test_expected_tables_are_registered() -> None:
         "users",
         "refresh_tokens",
         "api_keys",
+        "schedules",
+        "schedule_runs",
     }
 
     assert expected == set(Base.metadata.tables)
