@@ -25,11 +25,14 @@ from app.models import Agent, AgentStatus, Execution, Installation, Job, JobStat
 DbSession = Annotated[Session, Depends(get_db_session)]
 
 router = APIRouter(prefix="/agents", tags=["agents"])
-management_router = APIRouter(dependencies=[Depends(require_permission("agents.read"))])
 agent_api_router = APIRouter(prefix="/self")
 
 
-@management_router.get("", response_model=list[AgentRead])
+@router.get(
+    "",
+    response_model=list[AgentRead],
+    dependencies=[Depends(require_permission("agents.read"))],
+)
 def list_agents(
     session: DbSession,
     installation_id: UUID | None = None,
@@ -42,7 +45,7 @@ def list_agents(
     return list(session.scalars(statement.offset(offset).limit(limit)))
 
 
-@management_router.post(
+@router.post(
     "/register",
     response_model=AgentRegistrationResponse,
     status_code=status.HTTP_201_CREATED,
@@ -225,5 +228,4 @@ def submit_job_result(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-router.include_router(management_router)
 router.include_router(agent_api_router)
