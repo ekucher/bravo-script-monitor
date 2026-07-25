@@ -1,11 +1,11 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str = Field(min_length=3, max_length=320)
     password: str = Field(min_length=12, max_length=256)
 
 
@@ -25,7 +25,7 @@ class UserRead(BaseModel):
 
     id: UUID
     organization_id: UUID | None
-    email: EmailStr
+    email: str
     display_name: str
     is_active: bool
     is_superuser: bool
