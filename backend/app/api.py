@@ -12,6 +12,7 @@ from app.auth.dependencies import require_permission
 from app.auth.router import router as auth_router
 from app.database import get_db_session
 from app.models import Installation, Organization
+from app.scheduler.router import router as scheduler_router
 from app.schemas import (
     InstallationCreate,
     InstallationRead,
@@ -20,7 +21,7 @@ from app.schemas import (
 )
 from app.scripts.router import router as scripts_router
 
-APP_VERSION = "0.5.0-alpha"
+APP_VERSION = "0.7.0-alpha"
 DbSession = Annotated[Session, Depends(get_db_session)]
 
 router = APIRouter(prefix="/api/v1")
@@ -135,3 +136,4 @@ router.include_router(organization_router)
 router.include_router(installation_router)
 router.include_router(agents_router)
 router.include_router(scripts_router)
+router.include_router(scheduler_router)
