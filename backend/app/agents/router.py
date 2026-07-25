@@ -25,7 +25,6 @@ from app.models import Agent, AgentStatus, Execution, Installation, Job, JobStat
 DbSession = Annotated[Session, Depends(get_db_session)]
 
 router = APIRouter(prefix="/agents", tags=["agents"])
-agent_api_router = APIRouter(prefix="/self")
 
 
 @router.get(
@@ -108,7 +107,7 @@ def register_agent(payload: AgentRegistrationRequest, session: DbSession) -> Age
     )
 
 
-@agent_api_router.post("/heartbeat", response_model=AgentRead)
+@router.post("/self/heartbeat", response_model=AgentRead)
 def heartbeat(payload: AgentHeartbeatRequest, agent: CurrentAgent, session: DbSession) -> Agent:
     agent.last_seen_at = datetime.now(UTC)
     agent.status = AgentStatus.online
@@ -121,8 +120,8 @@ def heartbeat(payload: AgentHeartbeatRequest, agent: CurrentAgent, session: DbSe
     return agent
 
 
-@agent_api_router.put(
-    "/inventory",
+@router.put(
+    "/self/inventory",
     status_code=status.HTTP_204_NO_CONTENT,
     response_class=Response,
 )
@@ -142,7 +141,7 @@ def update_inventory(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@agent_api_router.post("/jobs/claim", response_model=AgentJobRead | None)
+@router.post("/self/jobs/claim", response_model=AgentJobRead | None)
 def claim_job(agent: CurrentAgent, session: DbSession) -> AgentJobRead | None:
     now = datetime.now(UTC)
     statement = (
@@ -191,8 +190,8 @@ def claim_job(agent: CurrentAgent, session: DbSession) -> AgentJobRead | None:
     )
 
 
-@agent_api_router.post(
-    "/jobs/{job_id}/result",
+@router.post(
+    "/self/jobs/{job_id}/result",
     status_code=status.HTTP_204_NO_CONTENT,
     response_class=Response,
 )
@@ -226,6 +225,3 @@ def submit_job_result(
     agent.status = AgentStatus.online
     session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-router.include_router(agent_api_router)
