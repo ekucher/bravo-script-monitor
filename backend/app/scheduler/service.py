@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models import Agent, Job, JobStatus, Organization, ScriptVersion
+from app.scheduler.engine import initialize_next_run_at
 from app.scheduler.models import Schedule, ScheduleKind
 from app.scheduler.schemas import ScheduleCreate, ScheduleUpdate
 
@@ -62,8 +63,7 @@ def create_schedule(
     )
     values = payload.model_dump()
     schedule = Schedule(**values, created_by_user_id=created_by_user_id)
-    if schedule.kind is ScheduleKind.once:
-        schedule.next_run_at = schedule.run_at
+    schedule.next_run_at = initialize_next_run_at(schedule)
     session.add(schedule)
     try:
         session.commit()
@@ -105,10 +105,12 @@ def update_schedule(session: Session, schedule: Schedule, payload: ScheduleUpdat
             detail="One-time schedules require run_at and forbid cron_expression",
         )
 
+    scheduling_fields = {"enabled", "kind", "cron_expression", "timezone", "run_at"}
+    recalculate = bool(scheduling_fields.intersection(values))
     for field, value in values.items():
         setattr(schedule, field, value)
-    if schedule.kind is ScheduleKind.once:
-        schedule.next_run_at = schedule.run_at if schedule.enabled else None
+    if recalculate:
+        schedule.next_run_at = initialize_next_run_at(schedule)
 
     try:
         session.commit()
@@ -124,8 +126,7 @@ def update_schedule(session: Session, schedule: Schedule, payload: ScheduleUpdat
 
 def set_schedule_enabled(session: Session, schedule: Schedule, enabled: bool) -> Schedule:
     schedule.enabled = enabled
-    if schedule.kind is ScheduleKind.once:
-        schedule.next_run_at = schedule.run_at if enabled else None
+    schedule.next_run_at = initialize_next_run_at(schedule)
     session.commit()
     session.refresh(schedule)
     return schedule
