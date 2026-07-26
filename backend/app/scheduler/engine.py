@@ -81,13 +81,16 @@ def _materialize_schedule(session: Session, schedule: Schedule, now: datetime) -
         parameters=dict(schedule.parameters),
         scheduled_for=scheduled_for,
     )
-    run = ScheduleRun(
-        schedule_id=schedule.id,
-        scheduled_for=scheduled_for,
-        status="pending",
-        job_id=job.id,
+    session.add(job)
+    session.flush()
+    session.add(
+        ScheduleRun(
+            schedule_id=schedule.id,
+            scheduled_for=scheduled_for,
+            status="pending",
+            job_id=job.id,
+        )
     )
-    session.add_all([job, run])
     schedule.last_run_at = scheduled_for
     schedule.next_run_at = _next_after_materialization(schedule, scheduled_for)
     return True
@@ -128,24 +131,24 @@ def process_due_schedules(
 
     for schedule in schedules:
         try:
-            if _materialize_schedule(session, schedule, current_time):
-                materialized += 1
-            else:
-                skipped += 1
-            session.flush()
+            with session.begin_nested():
+                if _materialize_schedule(session, schedule, current_time):
+                    materialized += 1
+                else:
+                    skipped += 1
+                session.flush()
         except IntegrityError:
-            session.rollback()
             failed += 1
-            break
-        except Exception as exc:  # preserve a ledger entry for operational diagnosis
-            session.add(
-                ScheduleRun(
-                    schedule_id=schedule.id,
-                    scheduled_for=schedule.next_run_at or current_time,
-                    status="failed",
-                    error=str(exc)[:2000],
+        except Exception as exc:
+            with session.begin_nested():
+                session.add(
+                    ScheduleRun(
+                        schedule_id=schedule.id,
+                        scheduled_for=schedule.next_run_at or current_time,
+                        status="failed",
+                        error=str(exc)[:2000],
+                    )
                 )
-            )
             failed += 1
 
     session.commit()
